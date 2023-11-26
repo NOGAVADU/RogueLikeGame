@@ -34,16 +34,17 @@ class Player {
 }
 
 class Enemy {
-  constructor(health, damage) {
+  constructor(health, damage, coords) {
     this.health = health;
     this.damage = damage;
+    this.coords = coords;
   }
 }
 
 class Game {
   constructor() {
     this.map = [];
-    this.enemy = [];
+    this.enemies = [];
     this.canvas = null;
   }
 }
@@ -97,7 +98,11 @@ function createTileGrid() {
 function drawObject(x, y, tileName) {
   let tile = document.getElementById(`${y}_${x}`);
   tile.className = "";
+  tile.innerHTML = "";
   tile.classList.add(tileName);
+  if (tileName === "tileP") {
+    showPlayerHealth();
+  }
 }
 
 function drawMap(startX, startY, endX, endY) {
@@ -186,8 +191,8 @@ function generatePlayer() {
 function generateEnemies(amount) {
   for (let i = 0; i < amount; i++) {
     let coords = generateValidCoord();
-    let enemy = new Enemy(60, 10);
-    game.enemy.push(enemy);
+    let enemy = new Enemy(60, 10, coords);
+    game.enemies.push(enemy);
     addObjToMap(coords, enemyCode);
   }
 }
@@ -219,18 +224,25 @@ function addEventListener() {
       case "a":
         x--;
         break;
+      case " ":
+        playerAttack();
       default:
         return;
     }
-    updateObjectPosition(
-      x,
-      y,
-      player.coords.x,
-      player.coords.y,
-      player,
-      playerCode
-    );
-    drawMap(0, 0, cols, rows);
+    
+    if (game.map[y][x] !== wallCode && game.map[y][x] !== enemyCode) {
+      updateObjectPosition(
+        x,
+        y,
+        player.coords.x,
+        player.coords.y,
+        player,
+        playerCode
+      );
+
+      drawMap(0, 0, cols, rows);
+    } else if (playerDangerZone) {
+    }
   });
 }
 
@@ -243,6 +255,70 @@ function updateObjectPosition(newX, newY, oldX, oldY, object, objectCode) {
   };
 }
 
+function playerAttack() {
+  // "Анимация" удара
+  let dangerZoneArr = [];
+  dangerZoneArr.push(
+    document.getElementById(`${player.coords.y}_${player.coords.x + 1}`)
+  );
+  dangerZoneArr.push(
+    document.getElementById(`${player.coords.y}_${player.coords.x - 1}`)
+  );
+  dangerZoneArr.push(
+    document.getElementById(`${player.coords.y + 1}_${player.coords.x}`)
+  );
+  dangerZoneArr.push(
+    document.getElementById(`${player.coords.y - 1}_${player.coords.x}`)
+  );
+  dangerZoneArr.forEach((tile) => {
+    tile.innerHTML = "+";
+    tile.style.color = "yellow";
+    tile.style.fontSize = "30px";
+    tile.style.textAlign = "center";
+    setTimeout(() => (tile.innerHTML = ""), 100);
+  });
+  // Нанесение урона
+  if (matchingCoords()) {
+    let enemy = game.enemies.find(matchingEnemyCoords);
+    fightEnemy(enemy);
+  }
+}
+
+function matchingEnemyCoords(enemy) {
+  return (
+    (player.coords.x + 1 == enemy.coords.x &&
+      player.coords.y == enemy.coords.y) ||
+    (player.coords.x - 1 == enemy.coords.x &&
+      player.coords.y == enemy.coords.y) ||
+    (player.coords.x == enemy.coords.x &&
+      player.coords.y + 1 == enemy.coords.y) ||
+    (player.coords.x == enemy.coords.x && player.coords.y - 1 == enemy.coords.y)
+  );
+}
+function matchingCoords() {
+  return (
+    game.map[player.coords.y][player.coords.x + 1] === enemyCode ||
+    game.map[player.coords.y][player.coords.x - 1] === enemyCode ||
+    game.map[player.coords.y + 1][player.coords.x] === enemyCode ||
+    game.map[player.coords.y - 1][player.coords.x] === enemyCode);
+}
+
+function fightEnemy(enemy) {
+  if (enemy.health - player.damage <= 0) {
+    removeObjFromMap(enemy.coords.x, enemy.coords.y);
+    drawMap(0, 0, cols, rows);
+  }
+  enemy.health -= player.damage;
+}
+
+function showPlayerHealth() {
+  let playerTile = document.getElementById(
+    `${player.coords.y}_${player.coords.x}`
+  );
+  playerTile.innerHTML = `<div class='health' style='width:${player.health}%'></div>`;
+}
+
+function playerDangerZone() {}
 // Генерация случайных координат пола
 function generateValidCoord() {
   let x, y;
