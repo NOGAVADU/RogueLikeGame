@@ -5,6 +5,7 @@ let player = null;
 // Константы размеров игровой карты
 const cols = 40;
 const rows = 24;
+// Константы размеро тайлов
 const tileHeight = 640 / rows;
 const tileWidth = 1024 / cols;
 
@@ -20,13 +21,15 @@ const playerCode = 2;
 const enemyCode = 3;
 const healthCode = 4;
 const weapondCode = 5;
+let tiles = ["tileW", "tile", "tileP", "tileE", "tileHP", "tileSW"];
 
 // СОЗДАНИЕ КЛАССОВ
 
 class Player {
-  constructor(health, damage) {
+  constructor(health, damage, coords) {
     this.health = health;
     this.damage = damage;
+    this.coords = coords;
   }
 }
 
@@ -42,14 +45,12 @@ class Game {
     this.map = [];
     this.enemy = [];
     this.canvas = null;
-    // this.context = null;
   }
 }
 
 function init() {
   game = new Game();
   game.canvas = document.querySelector(".field");
-  // game.context = game.canvas.getContext("2d");
 
   startGame();
 }
@@ -57,8 +58,15 @@ function init() {
 init();
 
 function startGame() {
+  createTileGrid();
   generateMap();
   generateRooms();
+  generateTunnels();
+  generateItems(healthAmount, healthCode);
+  generateItems(weapondAmount, weapondCode);
+  generatePlayer();
+  generateEnemies(enemyAmount);
+  addEventListener();
   drawMap(0, 0, cols, rows);
 }
 
@@ -71,19 +79,28 @@ function generateMap() {
   }
 }
 
+function createTileGrid() {
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      let tile = document.createElement("div");
+      tile.style.position = "absolute";
+      tile.style.width = `${tileWidth}px`;
+      tile.style.height = `${tileHeight}px`;
+      tile.style.left = `${col * tileWidth}px`;
+      tile.style.top = `${row * tileHeight}px`;
+      tile.id = `${row}_${col}`;
+      game.canvas.appendChild(tile);
+    }
+  }
+}
+
 function drawObject(x, y, tileName) {
-  let tile = document.createElement("div");
+  let tile = document.getElementById(`${y}_${x}`);
+  tile.className = "";
   tile.classList.add(tileName);
-  tile.style.position = "absolute";
-  tile.style.width = `${tileWidth}px`;
-  tile.style.height = `${tileHeight}px`;
-  tile.style.left = `${x * tileWidth}px`;
-  tile.style.top = `${y * tileHeight}px`;
-  game.canvas.appendChild(tile);
 }
 
 function drawMap(startX, startY, endX, endY) {
-  let tiles = ["tileW", "tile", "tileP", "tileE", "tileHP", "tileSW"];
   for (let row = startY; row < endY; row++) {
     for (let col = startX; col < endX; col++) {
       let tileCode = game.map[row][col];
@@ -94,11 +111,22 @@ function drawMap(startX, startY, endX, endY) {
 }
 
 function generateRoom(coordX, coordY) {
-  let roomHeigth = getRandomInt(3, 8);
-  let roomWidth = getRandomInt(3, 8);
-  for (let row = coordY; row < (coordY + roomHeigth < rows ? coordY + roomHeigth : rows); row++) {
-    for (let col = coordX; col < (coordX + roomWidth < cols ? coordX + roomWidth : cols); col++) {
-      if (game.map[row][col] !== undefined && game.map[row][col] !== 1) {
+  let roomHeigth = getRandomInt(3, 8),
+    roomWidth = getRandomInt(3, 8);
+  for (
+    let row = coordY;
+    row < (coordY + roomHeigth < rows ? coordY + roomHeigth : rows);
+    row++
+  ) {
+    for (
+      let col = coordX;
+      col < (coordX + roomWidth < cols ? coordX + roomWidth : cols);
+      col++
+    ) {
+      if (
+        game.map[row][col] !== undefined &&
+        game.map[row][col] !== floorCode
+      ) {
         game.map[row][col] = 1;
       }
     }
@@ -108,15 +136,127 @@ function generateRoom(coordX, coordY) {
 function generateRooms() {
   let roomsAmount = getRandomInt(5, 10);
   for (let roomsCounter = 0; roomsCounter < roomsAmount; roomsCounter++) {
-    let coordX = getRandomInt(0, cols);
-    let coordY = getRandomInt(0, rows);
-    console.log(coordX, coordY)
+    let coordX = getRandomInt(0, cols),
+      coordY = getRandomInt(0, rows);
     generateRoom(coordX, coordY);
   }
 }
 
-console.log(game.map)
+function generateTunnels() {
+  let tunnelsAmount = getRandomInt(3, 5);
+  // true - горизонтальное направление тунелей, false - вертикальное
+  generateTunnel(tunnelsAmount, true);
+  tunnelsAmount = getRandomInt(3, 5);
+  generateTunnel(tunnelsAmount, false);
+}
 
+// ТРЕБУЕТ ОПТИМИЗАЦИИ=================================================================================================================
+function generateTunnel(tunnelsAmount, horizontal) {
+  for (
+    let tunnelsCounter = 0;
+    tunnelsCounter < tunnelsAmount;
+    tunnelsCounter++
+  ) {
+    let coords = generateValidCoord();
+    if (horizontal) {
+      for (let coordX = 0; coordX < cols; coordX++) {
+        game.map[coords.y][coordX] = 1;
+      }
+      continue;
+    }
+    for (let coordY = 0; coordY < rows; coordY++) {
+      game.map[coordY][coords.x] = 1;
+    }
+  }
+}
+
+function generateItems(amount, tileCode) {
+  for (let i = 0; i < amount; i++) {
+    let coords = generateValidCoord();
+    addObjToMap(coords, tileCode);
+  }
+}
+
+function generatePlayer() {
+  let coords = generateValidCoord();
+  player = new Player(100, 15, coords);
+  addObjToMap(coords, playerCode);
+}
+
+function generateEnemies(amount) {
+  for (let i = 0; i < amount; i++) {
+    let coords = generateValidCoord();
+    let enemy = new Enemy(60, 10);
+    game.enemy.push(enemy);
+    addObjToMap(coords, enemyCode);
+  }
+}
+
+function addObjToMap(coord, tile) {
+  game.map[coord.y][coord.x] = tile;
+}
+
+function removeObjFromMap(x, y) {
+  game.map[y][x] = floorCode;
+}
+
+function addEventListener() {
+  document.addEventListener("keydown", (e) => {
+    let x = player.coords.x;
+    let y = player.coords.y;
+    let oldX = player.coords.x;
+    let oldY = player.coords.y;
+    switch (e.key) {
+      case "w":
+        y--;
+        break;
+      case "d":
+        x++;
+        break;
+      case "s":
+        y++;
+        break;
+      case "a":
+        x--;
+        break;
+      default:
+        return;
+    }
+    updateObjectPosition(
+      x,
+      y,
+      player.coords.x,
+      player.coords.y,
+      player,
+      playerCode
+    );
+    drawMap(0, 0, cols, rows);
+  });
+}
+
+function updateObjectPosition(newX, newY, oldX, oldY, object, objectCode) {
+  removeObjFromMap(oldX, oldY);
+  game.map[newY][newX] = objectCode;
+  object.coords = {
+    x: newX,
+    y: newY,
+  };
+}
+
+// Генерация случайных координат пола
+function generateValidCoord() {
+  let x, y;
+  let turns = 0,
+    limit = 100;
+  do {
+    x = getRandomInt(0, cols);
+    y = getRandomInt(0, rows);
+    turns++;
+  } while (game.map[y][x] != floorCode && turns < limit);
+  return { x: x, y: y };
+}
+
+// Генерация случайного числа в промежутке
 function getRandomInt(min, max) {
   min = Math.ceil(min);
   max = Math.floor(max);
