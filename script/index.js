@@ -5,7 +5,7 @@ let player = null;
 // Константы размеров игровой карты
 const cols = 40;
 const rows = 24;
-// Константы размеро тайлов
+// Константы размеров тайлов
 const tileHeight = 640 / rows;
 const tileWidth = 1024 / cols;
 
@@ -102,6 +102,9 @@ function drawObject(x, y, tileName) {
   tile.classList.add(tileName);
   if (tileName === "tileP") {
     showPlayerHealth();
+  }
+  if (tileName === "tileE") {
+    showEnemyHealth();
   }
 }
 
@@ -226,10 +229,14 @@ function addEventListener() {
         break;
       case " ":
         playerAttack();
+        if (matchingCoords()) {
+          let enemy = game.enemies.find(matchingEnemyCoords);
+          enemyAtack(enemy);
+        }
       default:
         return;
     }
-    
+
     if (game.map[y][x] !== wallCode && game.map[y][x] !== enemyCode) {
       updateObjectPosition(
         x,
@@ -239,10 +246,15 @@ function addEventListener() {
         player,
         playerCode
       );
-
-      drawMap(0, 0, cols, rows);
-    } else if (playerDangerZone) {
+      if (matchingCoords()) {
+        let enemy = game.enemies.find(matchingEnemyCoords);
+        enemyAtack(enemy);
+      }
+    } else if (matchingCoords()) {
+      let enemy = game.enemies.find(matchingEnemyCoords);
+      enemyAtack(enemy);
     }
+    drawMap(0, 0, cols, rows);
   });
 }
 
@@ -257,30 +269,40 @@ function updateObjectPosition(newX, newY, oldX, oldY, object, objectCode) {
 
 function playerAttack() {
   // "Анимация" удара
-  let dangerZoneArr = [];
-  dangerZoneArr.push(
-    document.getElementById(`${player.coords.y}_${player.coords.x + 1}`)
-  );
-  dangerZoneArr.push(
-    document.getElementById(`${player.coords.y}_${player.coords.x - 1}`)
-  );
-  dangerZoneArr.push(
-    document.getElementById(`${player.coords.y + 1}_${player.coords.x}`)
-  );
-  dangerZoneArr.push(
-    document.getElementById(`${player.coords.y - 1}_${player.coords.x}`)
-  );
-  dangerZoneArr.forEach((tile) => {
-    tile.innerHTML = "+";
-    tile.style.color = "yellow";
-    tile.style.fontSize = "30px";
-    tile.style.textAlign = "center";
-    setTimeout(() => (tile.innerHTML = ""), 100);
-  });
+  // let dangerZoneArr = [];
+  // dangerZoneArr.push(
+  //   document.getElementById(`${player.coords.y}_${player.coords.x + 1}`)
+  // );
+  // dangerZoneArr.push(
+  //   document.getElementById(`${player.coords.y}_${player.coords.x - 1}`)
+  // );
+  // dangerZoneArr.push(
+  //   document.getElementById(`${player.coords.y + 1}_${player.coords.x}`)
+  // );
+  // dangerZoneArr.push(
+  //   document.getElementById(`${player.coords.y - 1}_${player.coords.x}`)
+  // );
+  // dangerZoneArr.forEach((tile) => {
+  //   tile.innerHTML = "+";
+  //   tile.style.color = "yellow";
+  //   tile.style.fontSize = "30px";
+  //   tile.style.textAlign = "center";
+  //   setTimeout(() => (tile.innerHTML = ""), 100);
+  // });
   // Нанесение урона
   if (matchingCoords()) {
     let enemy = game.enemies.find(matchingEnemyCoords);
     fightEnemy(enemy);
+  }
+}
+
+function enemyAtack(enemy) {
+  if (matchingCoords()) {
+    if (player.health - enemy.damage <= 0) {
+      gameOver();
+    }
+    player.health -= enemy.damage;
+    drawMap(0, 0, cols, rows);
   }
 }
 
@@ -300,7 +322,8 @@ function matchingCoords() {
     game.map[player.coords.y][player.coords.x + 1] === enemyCode ||
     game.map[player.coords.y][player.coords.x - 1] === enemyCode ||
     game.map[player.coords.y + 1][player.coords.x] === enemyCode ||
-    game.map[player.coords.y - 1][player.coords.x] === enemyCode);
+    game.map[player.coords.y - 1][player.coords.x] === enemyCode
+  );
 }
 
 function fightEnemy(enemy) {
@@ -318,7 +341,24 @@ function showPlayerHealth() {
   playerTile.innerHTML = `<div class='health' style='width:${player.health}%'></div>`;
 }
 
-function playerDangerZone() {}
+function showEnemyHealth() {
+  let enemies = game.enemies;
+  enemies.forEach((enemy) => {
+    let enemyTile = document.getElementById(
+      `${enemy.coords.y}_${enemy.coords.x}`
+    );
+    console.log(enemy.health)
+    enemyTile.innerHTML = `<div class='health' style='width:${enemy.health * 100 / 60}%'></div>`;
+  });
+}
+
+function gameOver() {
+  alert("GAME OVER!");
+  removeObjFromMap(player.coords.x, player.coords.y);
+  drawMap(0, 0, cols, rows);
+  player = null;
+}
+
 // Генерация случайных координат пола
 function generateValidCoord() {
   let x, y;

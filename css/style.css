@@ -10,7 +10,7 @@ h1 { font-family: "Playfair Display"; font-size: 30px; padding: 10px 0px; margin
 .field .tileP { background-image: url("../images/tile-P.png"); background-size: cover ; z-index: 10; }
 .field .tileHP { background-image: url("../images/tile-HP.png"); background-size: cover ; z-index: 9; }
 .field .tileSW { background-image: url("../images/tile-SW.png"); background-size: cover ; z-index: 9; }
-.field .tile .health { background-color: #ff0000; z-index: 11; position: absolute; left: 0px; top: 0px; height: 3px; }
+.field .tileE .health { background-color: #ff0000; z-index: 11; position: absolute; left: 0px; top: 0px; height: 3px; }
 .field .tileP .health { background-color: #00ff00; z-index: 11; position: absolute; left: 0px; top: 0px; height: 3px; }
 .inventory-box { border: 2px solid #d0d0d0; float: left; }
 .inventory { position: relative; width: 800px; height: 32px; }
