@@ -174,17 +174,17 @@ function generateTunnel(tunnelsAmount, horizontal) {
     tunnelsCounter++
   ) {
     let tunnelCoords = generateValidCoord();
-      if (horizontal) {
-        for (let coordX = 0; coordX < cols; coordX++) {
-          game.map[tunnelCoords.y][coordX] = 1;
-        }
-      } else {
-        for (let coordY = 0; coordY < rows; coordY++) {
-          game.map[coordY][tunnelCoords.x] = 1;
-        }
+    if (horizontal) {
+      for (let coordX = 0; coordX < cols; coordX++) {
+        game.map[tunnelCoords.y][coordX] = 1;
+      }
+    } else {
+      for (let coordY = 0; coordY < rows; coordY++) {
+        game.map[coordY][tunnelCoords.x] = 1;
       }
     }
   }
+}
 
 // Создание туннелей для "отсоединенных" комнат
 function createTunnels() {
@@ -208,6 +208,7 @@ function createTunnels() {
   }
   // Получение отъсоединенных комнат
   const disconnectedRooms = findDisconnectedRooms();
+  console.log(disconnectedRooms)
 
   // Соединение каждой комнаты туннелем
   for (let i = 0; i < disconnectedRooms.length - 1; i++) {
@@ -251,7 +252,7 @@ function findDisconnectedRooms() {
       }
     }
   }
-  console.log(disconnectedRooms)
+
   return disconnectedRooms;
 }
 
