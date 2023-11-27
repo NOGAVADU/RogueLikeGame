@@ -48,6 +48,7 @@ class Game {
     this.canvas = null;
   }
 }
+//======================================================================================================
 
 function init() {
   game = new Game();
@@ -58,6 +59,7 @@ function init() {
 
 init();
 
+//===================================================================================================
 function startGame() {
   createTileGrid();
   generateMap();
@@ -117,7 +119,7 @@ function drawMap(startX, startY, endX, endY) {
     }
   }
 }
-
+// ГЕНЕРАЦИЯ КОМНАТ======================================================================================
 function generateRoom(coordX, coordY) {
   let roomHeigth = getRandomInt(3, 8),
     roomWidth = getRandomInt(3, 8);
@@ -149,7 +151,7 @@ function generateRooms() {
     generateRoom(coordX, coordY);
   }
 }
-
+// ГЕНЕРАЦИЯ ТУННЕЛЕЙ================================================================================================================
 function generateTunnels() {
   let tunnelsAmount = getRandomInt(3, 5);
   // true - горизонтальное направление тунелей, false - вертикальное
@@ -178,6 +180,7 @@ function generateTunnel(tunnelsAmount, horizontal) {
   }
 }
 
+// ГЕНЕРАЦИЯ ИГРОВЫХ ОБЪЕКТОВ================================================================================
 function generateItems(amount, tileCode) {
   for (let i = 0; i < amount; i++) {
     let coords = generateValidCoord();
@@ -199,7 +202,7 @@ function generateEnemies(amount) {
     addObjToMap(coords, enemyCode);
   }
 }
-
+// Добавление/Удаление объектов и игрового пространства
 function addObjToMap(coord, tile) {
   game.map[coord.y][coord.x] = tile;
 }
@@ -207,7 +210,7 @@ function addObjToMap(coord, tile) {
 function removeObjFromMap(x, y) {
   game.map[y][x] = floorCode;
 }
-
+// ПРОСЛУШИВАНИЕ СОБЫТИЙ========================================================================
 function addEventListener() {
   document.addEventListener("keydown", (e) => {
     let x = player.coords.x;
@@ -229,15 +232,18 @@ function addEventListener() {
         break;
       case " ":
         playerAttack();
-        if (matchingCoords()) {
-          let enemy = game.enemies.find(matchingEnemyCoords);
-          enemyAtack(enemy);
-        }
+        break;
       default:
         return;
     }
 
     if (game.map[y][x] !== wallCode && game.map[y][x] !== enemyCode) {
+      if (game.map[y][x] === healthCode){
+        player.health = 100;
+      }
+      if (game.map[y][x] == weapondCode){
+        player.damage *= 2;
+      }
       updateObjectPosition(
         x,
         y,
@@ -246,58 +252,92 @@ function addEventListener() {
         player,
         playerCode
       );
-      if (matchingCoords()) {
-        let enemy = game.enemies.find(matchingEnemyCoords);
-        enemyAtack(enemy);
-      }
-    } else if (matchingCoords()) {
-      let enemy = game.enemies.find(matchingEnemyCoords);
-      enemyAtack(enemy);
     }
+    let enemy = game.enemies.find(matchingEnemyCoords);
+    enemy !== undefined ? enemyAtack(enemy) : "";
+    enemiesMoving();
     drawMap(0, 0, cols, rows);
   });
 }
-
+// ПЕРЕМЕЩЕНИЕ ОБЪЕКТОВ ПО КАРТЕ================================================
 function updateObjectPosition(newX, newY, oldX, oldY, object, objectCode) {
-  removeObjFromMap(oldX, oldY);
-  game.map[newY][newX] = objectCode;
-  object.coords = {
-    x: newX,
-    y: newY,
-  };
-}
-
-function playerAttack() {
-  // "Анимация" удара
-  // let dangerZoneArr = [];
-  // dangerZoneArr.push(
-  //   document.getElementById(`${player.coords.y}_${player.coords.x + 1}`)
-  // );
-  // dangerZoneArr.push(
-  //   document.getElementById(`${player.coords.y}_${player.coords.x - 1}`)
-  // );
-  // dangerZoneArr.push(
-  //   document.getElementById(`${player.coords.y + 1}_${player.coords.x}`)
-  // );
-  // dangerZoneArr.push(
-  //   document.getElementById(`${player.coords.y - 1}_${player.coords.x}`)
-  // );
-  // dangerZoneArr.forEach((tile) => {
-  //   tile.innerHTML = "+";
-  //   tile.style.color = "yellow";
-  //   tile.style.fontSize = "30px";
-  //   tile.style.textAlign = "center";
-  //   setTimeout(() => (tile.innerHTML = ""), 100);
-  // });
-  // Нанесение урона
-  if (matchingCoords()) {
-    let enemy = game.enemies.find(matchingEnemyCoords);
-    fightEnemy(enemy);
+  if (0 <= newX && newX <= cols - 1 && 0 <= newY && newY <= rows - 1) {
+    if (objectCode === enemyCode) {
+      if (
+        game.map[newY][newX] !== wallCode &&
+        game.map[newY][newX] !== enemyCode &&
+        game.map[newY][newX] !== playerCode &&
+        game.map[newY][newX] !== weapondCode &&
+        game.map[newY][newX] !== healthCode
+      ) {
+        removeObjFromMap(oldX, oldY);
+        game.map[newY][newX] = objectCode;
+        object.coords = {
+          x: newX,
+          y: newY,
+        };
+      }
+    } else {
+      removeObjFromMap(oldX, oldY);
+      game.map[newY][newX] = objectCode;
+      object.coords = {
+        x: newX,
+        y: newY,
+      };
+    }
   }
 }
 
+// CЛУЧАЙНОЕ ПЕРЕМЕЩЕНИЕ ПРОТИВНИКОВ=========================================
+function enemiesMoving() {
+  const enemies = game.enemies;
+  enemies.forEach((enemy) => {
+    // вертикальное или горизонтальное направление
+    let dirXY = Math.random() <= 0.5 ? true : false;
+    // Вперед или назад
+    let dir = Math.random() <= 0.5 ? 1 : -1;
+    if (dirXY) {
+      updateObjectPosition(
+        enemy.coords.x + dir,
+        enemy.coords.y,
+        enemy.coords.x,
+        enemy.coords.y,
+        enemy,
+        enemyCode
+      );
+    } else {
+      updateObjectPosition(
+        enemy.coords.x,
+        enemy.coords.y + dir,
+        enemy.coords.x,
+        enemy.coords.y,
+        enemy,
+        enemyCode
+      );
+    }
+  });
+}
+
+// АТАКА ПЕРСОНАЖЕМ ПРОТИВНИКА================================================
+function playerAttack() {
+  let enemies = game.enemies.filter(matchingEnemyCoords);
+  enemies.forEach((enemy) => {
+    if (enemy.health - player.damage <= 0) {
+      let enemyIndex = game.enemies.indexOf(enemy);
+      game.enemies.splice(enemyIndex, 1);
+      if (game.enemies.length == 0){
+        playerWin()
+      }
+      removeObjFromMap(enemy.coords.x, enemy.coords.y);
+    }
+    enemy.health -= player.damage;
+    drawMap(0, 0, cols, rows);
+  })
+}
+
+// АТАКА ПРОТИВНИКОМ ПЕРСОНАЖА=============================================
 function enemyAtack(enemy) {
-  if (matchingCoords()) {
+  if (matchingEnemyCoords(enemy)) {
     if (player.health - enemy.damage <= 0) {
       gameOver();
     }
@@ -305,7 +345,7 @@ function enemyAtack(enemy) {
     drawMap(0, 0, cols, rows);
   }
 }
-
+// Проверка, что противник и персонаж находятся рядом
 function matchingEnemyCoords(enemy) {
   return (
     (player.coords.x + 1 == enemy.coords.x &&
@@ -317,6 +357,7 @@ function matchingEnemyCoords(enemy) {
     (player.coords.x == enemy.coords.x && player.coords.y - 1 == enemy.coords.y)
   );
 }
+// Провекра в массиве на то, что клетки по близости являются противником
 function matchingCoords() {
   return (
     game.map[player.coords.y][player.coords.x + 1] === enemyCode ||
@@ -326,30 +367,29 @@ function matchingCoords() {
   );
 }
 
-function fightEnemy(enemy) {
-  if (enemy.health - player.damage <= 0) {
-    removeObjFromMap(enemy.coords.x, enemy.coords.y);
-    drawMap(0, 0, cols, rows);
-  }
-  enemy.health -= player.damage;
-}
-
+// Функция для отрисовки ХП бара у персонажа
 function showPlayerHealth() {
   let playerTile = document.getElementById(
     `${player.coords.y}_${player.coords.x}`
   );
   playerTile.innerHTML = `<div class='health' style='width:${player.health}%'></div>`;
 }
-
+// Фукция для отрисовки ХП бара у противников
 function showEnemyHealth() {
   let enemies = game.enemies;
   enemies.forEach((enemy) => {
     let enemyTile = document.getElementById(
       `${enemy.coords.y}_${enemy.coords.x}`
     );
-    console.log(enemy.health)
-    enemyTile.innerHTML = `<div class='health' style='width:${enemy.health * 100 / 60}%'></div>`;
+    enemyTile.innerHTML = `<div class='health' style='width:${
+      (enemy.health * 100) / 60
+    }%'></div>`;
   });
+}
+
+// Победа и проигрыш
+function playerWin() {
+  alert("YOU WIN!");
 }
 
 function gameOver() {
