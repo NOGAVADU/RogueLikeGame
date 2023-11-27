@@ -65,6 +65,7 @@ function startGame() {
   generateMap();
   generateRooms();
   generateTunnels();
+  createTunnels();
   generateItems(healthAmount, healthCode);
   generateItems(weapondAmount, weapondCode);
   generatePlayer();
@@ -157,6 +158,7 @@ function generateRoom(coordX, coordY) {
 }
 
 // ГЕНЕРАЦИЯ ТУННЕЛЕЙ================================================================================================================
+// Создание общих туннелей
 function generateTunnels() {
   let tunnelsAmountX = getRandomInt(3, 5),
     tunnelsAmountY = getRandomInt(3, 5);
@@ -183,6 +185,75 @@ function generateTunnel(tunnelsAmount, horizontal) {
       }
     }
   }
+
+// Создание туннелей для "отсоединенных" комнат
+function createTunnels() {
+  function connectRooms(room1, room2) {
+    let [row1, col1] = room1;
+    let [row2, col2] = room2;
+
+    while (row1 !== row2 || col1 !== col2) {
+      if (row1 < row2) {
+        row1++;
+      } else if (row1 > row2) {
+        row1--;
+      } else if (col1 < col2) {
+        col1++;
+      } else {
+        col1--;
+      }
+
+      game.map[row1][col1] = 1; // Создание туннеля
+    }
+  }
+  // Получение отъсоединенных комнат
+  const disconnectedRooms = findDisconnectedRooms();
+
+  // Соединение каждой комнаты туннелем
+  for (let i = 0; i < disconnectedRooms.length - 1; i++) {
+    connectRooms(disconnectedRooms[i][0], disconnectedRooms[i + 1][0]);
+  }
+}
+
+function findDisconnectedRooms() {
+  const rows = game.map.length;
+  const cols = game.map[0].length;
+  const visited = Array.from({ length: rows }, () => Array(cols).fill(false));
+  const disconnectedRooms = [];
+
+  function exploreArea(row, col, area) {
+    if (
+      row < 0 ||
+      row >= rows ||
+      col < 0 ||
+      col >= cols ||
+      visited[row][col] ||
+      game.map[row][col] === 0
+    ) {
+      return;
+    }
+
+    visited[row][col] = true;
+    area.push([row, col]);
+
+    exploreArea(row - 1, col, area); // Вверх
+    exploreArea(row + 1, col, area); // Вниз
+    exploreArea(row, col - 1, area); // Влево
+    exploreArea(row, col + 1, area); // Вправо
+  }
+
+  for (let i = 0; i < rows; i++) {
+    for (let j = 0; j < cols; j++) {
+      if (game.map[i][j] === 1 && !visited[i][j]) {
+        const currentArea = [];
+        exploreArea(i, j, currentArea);
+        disconnectedRooms.push(currentArea);
+      }
+    }
+  }
+  console.log(disconnectedRooms)
+  return disconnectedRooms;
+}
 
 // ГЕНЕРАЦИЯ ИГРОВЫХ ОБЪЕКТОВ================================================================================
 function generateItems(amount, tileCode) {
@@ -221,8 +292,6 @@ function addEventListener() {
   document.addEventListener("keydown", (e) => {
     let x = player.coords.x;
     let y = player.coords.y;
-    let oldX = player.coords.x;
-    let oldY = player.coords.y;
     switch (e.key) {
       case "w":
         y--;
